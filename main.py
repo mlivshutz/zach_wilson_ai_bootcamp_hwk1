@@ -204,10 +204,13 @@ async def generate_rag_response(query: str) -> tuple[str, List[str]]:
     # Build context from retrieved documents
     context = ""
     sources = []
+    print(f"For user prompt ->{query}<- loaded {len(relevant_docs)} documents:\n")
     for doc in relevant_docs:
         context += f"Title: {doc['title']}\nContent: {doc['content']}\n\n"
         sources.append(doc['title'])
-    
+        print(f"Title: {doc['title']}\nContent length: {len(doc['content'])}\n")
+    print("\n")
+
     # Create RAG prompt
     rag_prompt = f"""You are a helpful AI assistant. Use the following context to answer the user's question. If the context doesn't contain relevant information, say so and provide a general response.
 
