@@ -16,7 +16,7 @@ This is an advanced AI-powered chat application that combines **ChatGPT** with *
 ### 🎯 AI & Vector Search
 - **Semantic Search** - Find relevant documents using vector embeddings
 - **Context-Aware Responses** - ChatGPT uses retrieved documents as context
-- **Sentence Transformers** - Uses optimized embedding models for document vectorization
+- **OpenAI Embeddings** - Uses OpenAI's text-embedding-3-small model for high-quality vectorization
 - **Cosine Similarity** - Efficient similarity matching for relevant content retrieval
 
 ### 📁 Document Support
@@ -116,7 +116,7 @@ uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 ```
 "What is FastAPI and how does it work?"
 "Tell me about vector databases and Zilliz Cloud"
-"How do I implement similarity search with managed vector databases?"
+"How do I implement similarity search with Zilliz Cloud?"
 "What are the benefits of RAG systems using cloud infrastructure?"
 ```
 
@@ -166,7 +166,7 @@ Response:
   "status": "healthy",
   "connection_type": "Zilliz Cloud",
   "milvus_connected": true,
-  "embedding_model": "all-MiniLM-L6-v2"
+  "embedding_model": "text-embedding-3-small"
 }
 ```
 
@@ -179,21 +179,22 @@ Fields:
 - id: VARCHAR(100) [Primary Key]
 - title: VARCHAR(500) 
 - content: VARCHAR(5000)
-- embedding: FLOAT_VECTOR(384) [Searchable]
+- embedding: FLOAT_VECTOR(1536) [Searchable]
 
 Index: IVF_FLAT with COSINE similarity
 ```
 
 ### Embedding Model
-- **Model**: `all-MiniLM-L6-v2` (Sentence Transformers)
-- **Dimensions**: 384
+- **Model**: `text-embedding-3-small` (OpenAI)
+- **Dimensions**: 1536
 - **Similarity Metric**: Cosine Similarity
-- **Performance**: Fast, lightweight, good quality
+- **Performance**: High-quality, consistent with OpenAI ecosystem
 
 ### RAG Configuration
 - **Retrieval**: Top-3 most similar documents
 - **Context Window**: Up to 5000 chars per document
 - **Generation Model**: GPT-3.5-turbo
+- **Embedding Model**: text-embedding-3-small
 - **Temperature**: 0.7 (balanced creativity/accuracy)
 - **Vector Database**: Zilliz Cloud (managed, auto-scaling)
 
@@ -238,9 +239,11 @@ curl -H "Authorization: Bearer $OPENAI_API_KEY" \
 ```
 fastapi==0.116.1          # Web framework
 uvicorn==0.35.0           # ASGI server
-openai==1.40.0            # OpenAI API client
-pymilvus==2.4.5           # Zilliz Cloud vector database client
-sentence-transformers==2.7.0  # Embedding model
+python-multipart==0.0.9   # File upload support
+openai==1.40.0            # OpenAI API client (chat + embeddings)
+pymilvus==2.5.13          # Zilliz Cloud vector database client
+marshmallow==3.19.0       # Data serialization (pymilvus dependency)
+environs==9.5.0           # Environment configuration (pymilvus dependency)
 pandas==2.2.3             # Data processing
 numpy==1.26.4             # Numerical computing
 python-dotenv==1.0.1      # Environment variables

@@ -7,15 +7,15 @@ import openai
 import os
 from dotenv import load_dotenv
 from pymilvus import connections, Collection, FieldSchema, CollectionSchema, DataType, utility
-from sentence_transformers import SentenceTransformer
 import numpy as np
 import logging
 import uuid
 import json
+import httpx
+
 
 # Load environment variables
 load_dotenv()
-
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -28,14 +28,30 @@ app = FastAPI(title="RAG-Powered ChatGPT API with Zilliz Cloud", version="2.0.0"
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # Initialize OpenAI client
-openai.api_key = os.getenv("OPENAI_API_KEY")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+if OPENAI_API_KEY:
+    openai.api_key = OPENAI_API_KEY
+    # Explicitly create an httpx client without proxies
+    async_http_client = httpx.AsyncClient()
+    # async_http_client = httpx.AsyncClient(proxies=None)
+    client = openai.AsyncOpenAI(api_key=OPENAI_API_KEY, http_client=async_http_client)
+else:
+    client = None
 
-# Initialize sentence transformer for embeddings
+# Global variables
+collection = None
+
+def get_openai_client():
+    """Get OpenAI client with error handling"""
+    if client is None:
+        raise HTTPException(status_code=500, detail="OpenAI API key not configured")
+    return client
+
+# Initialize embedding model and collection
 @app.on_event("startup")
 async def startup_event():
-    global embedding_model, collection
-    logger.info("Loading embedding model...")
-    embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
+    global collection
+    logger.info("Initializing RAG system...")
     
     # Connect to Zilliz Cloud
     logger.info("Connecting to Zilliz Cloud...")
@@ -57,6 +73,13 @@ async def startup_event():
     
     # Initialize collection
     collection = setup_milvus_collection()
+    
+    # Test OpenAI client initialization
+    if client:
+        logger.info("OpenAI client initialized successfully")
+    else:
+        logger.warning("OpenAI client not initialized - API key missing")
+    
     logger.info("RAG system initialized successfully!")
 
 # Pydantic models
@@ -77,7 +100,7 @@ class DocumentResponse(BaseModel):
 
 # Milvus setup
 def setup_milvus_collection():
-    collection_name = "knowledge_base"
+    collection_name = "ansh_lamba_databricks_videos"
     
     # Check if collection exists
     if utility.has_collection(collection_name):
@@ -90,7 +113,7 @@ def setup_milvus_collection():
         FieldSchema(name="id", dtype=DataType.VARCHAR, max_length=100, is_primary=True),
         FieldSchema(name="title", dtype=DataType.VARCHAR, max_length=500),
         FieldSchema(name="content", dtype=DataType.VARCHAR, max_length=5000),
-        FieldSchema(name="embedding", dtype=DataType.FLOAT_VECTOR, dim=384)  # all-MiniLM-L6-v2 dimension
+        FieldSchema(name="embedding", dtype=DataType.FLOAT_VECTOR, dim=1536)  # OpenAI text-embedding-3-small dimension
     ]
     
     schema = CollectionSchema(fields=fields, description="Knowledge base for RAG")
@@ -108,15 +131,29 @@ def setup_milvus_collection():
     return collection
 
 # Embedding functions
-def get_embedding(text: str) -> List[float]:
-    """Generate embedding for text using sentence transformer"""
-    embedding = embedding_model.encode(text)
-    return embedding.tolist()
+async def get_embedding(text: str) -> List[float]:
+    """Generate embedding for text using OpenAI API"""
+    try:
+        # Get OpenAI client
+        openai_client = get_openai_client()
+        
+        # Clean the text by removing newlines and extra whitespace
+        cleaned_text = text.replace("\n", " ").strip()
+        
+        # Create embedding using the OpenAI client
+        response = await openai_client.embeddings.create(
+            model="text-embedding-3-small",
+            input=cleaned_text
+        )
+        return response.data[0].embedding
+    except Exception as e:
+        logger.error(f"Error generating embedding: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error generating embedding: {str(e)}")
 
-def store_document(title: str, content: str) -> str:
+async def store_document(title: str, content: str) -> str:
     """Store document in Milvus vector database"""
     doc_id = str(uuid.uuid4())
-    embedding = get_embedding(content)
+    embedding = await get_embedding(content)
     
     # Insert data
     data = [
@@ -132,9 +169,9 @@ def store_document(title: str, content: str) -> str:
     logger.info(f"Stored document: {title} with ID: {doc_id}")
     return doc_id
 
-def retrieve_relevant_docs(query: str, top_k: int = 3) -> List[dict]:
+async def retrieve_relevant_docs(query: str, top_k: int = 3) -> List[dict]:
     """Retrieve relevant documents from Milvus"""
-    query_embedding = get_embedding(query)
+    query_embedding = await get_embedding(query)
     
     search_params = {"metric_type": "COSINE", "params": {"nprobe": 10}}
     
@@ -159,7 +196,7 @@ def retrieve_relevant_docs(query: str, top_k: int = 3) -> List[dict]:
 async def generate_rag_response(query: str) -> tuple[str, List[str]]:
     """Generate response using RAG (Retrieval-Augmented Generation)"""
     # Retrieve relevant documents
-    relevant_docs = retrieve_relevant_docs(query, top_k=3)
+    relevant_docs = await retrieve_relevant_docs(query, top_k=3)
     
     # Build context from retrieved documents
     context = ""
@@ -179,8 +216,9 @@ User Question: {query}
 Please provide a helpful and accurate response based on the context provided:"""
     
     try:
-        # Generate response using OpenAI
-        response = openai.chat.completions.create(
+        # Get OpenAI client and generate response
+        openai_client = get_openai_client()
+        response = await openai_client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[
                 {"role": "system", "content": "You are a helpful AI assistant that answers questions based on provided context."},
@@ -216,20 +254,21 @@ async def say_hello(name: str):
 
 @app.get("/health")
 async def health_check():
+    # Test OpenAI client
+    openai_status = "connected" if client else "not configured"
+    
     return {
         "status": "healthy",
         "connection_type": "Zilliz Cloud",
-        "milvus_connected": utility.has_collection("knowledge_base"),
-        "embedding_model": "all-MiniLM-L6-v2"
+        "milvus_connected": utility.has_collection("ansh_lamba_databricks_videos"),
+        "embedding_model": "text-embedding-3-small",
+        "openai_status": openai_status
     }
 
 # RAG-powered chat endpoint
 @app.post("/ask", response_model=ChatResponse)
 async def chat_with_rag(message: ChatMessage):
     """Chat endpoint with RAG functionality"""
-    if not openai.api_key:
-        raise HTTPException(status_code=500, detail="OpenAI API key not configured")
-    
     try:
         # Generate RAG response
         response, sources = await generate_rag_response(message.message)
@@ -245,7 +284,7 @@ async def chat_with_rag(message: ChatMessage):
 async def add_document(doc: DocumentUpload):
     """Add a document to the knowledge base"""
     try:
-        doc_id = store_document(doc.title, doc.content)
+        doc_id = await store_document(doc.title, doc.content)
         return DocumentResponse(
             id=doc_id,
             message=f"Document '{doc.title}' added successfully to knowledge base"
@@ -264,7 +303,7 @@ async def upload_document(file: UploadFile = File(...)):
         content = await file.read()
         text_content = content.decode('utf-8')
         
-        doc_id = store_document(file.filename, text_content)
+        doc_id = await store_document(file.filename, text_content)
         
         return DocumentResponse(
             id=doc_id,
@@ -278,7 +317,7 @@ async def upload_document(file: UploadFile = File(...)):
 async def search_documents(query: str, limit: int = 5):
     """Search documents in the knowledge base"""
     try:
-        docs = retrieve_relevant_docs(query, top_k=limit)
+        docs = await retrieve_relevant_docs(query, top_k=limit)
         return {"query": query, "results": docs}
     except Exception as e:
         logger.error(f"Error searching documents: {str(e)}")
@@ -298,15 +337,15 @@ async def initialize_sample_data():
             "content": "Vector databases are specialized databases designed to store and query high-dimensional vectors efficiently. They're essential for AI applications like semantic search, recommendation systems, and RAG (Retrieval-Augmented Generation)."
         },
         {
-            "title": "Milvus Database",
-            "content": "Milvus is an open-source vector database built for scalable similarity search and AI applications. It supports multiple index types and similarity metrics, making it ideal for machine learning and deep learning applications."
+            "title": "Zilliz Cloud",
+            "content": "Zilliz Cloud is a fully managed vector database service built on Milvus. It provides scalable similarity search and AI applications with enterprise-grade security, reliability, and performance optimization."
         }
     ]
     
     try:
         stored_docs = []
         for doc in sample_docs:
-            doc_id = store_document(doc["title"], doc["content"])
+            doc_id = await store_document(doc["title"], doc["content"])
             stored_docs.append({"id": doc_id, "title": doc["title"]})
         
         return {

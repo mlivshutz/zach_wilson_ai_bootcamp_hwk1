@@ -7,13 +7,12 @@ python-multipart==0.0.9
 requests==2.32.3
 
 # OpenAI Integration
-openai==1.40.0
+openai==1.51.2
 
 # Vector Database & RAG
 pymilvus==2.5.13
 marshmallow==3.19.0
 environs==9.5.0
-sentence-transformers==2.7.0
 # setuptools<81.0.0
 
 # Data Processing
