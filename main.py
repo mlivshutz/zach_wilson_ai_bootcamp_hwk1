@@ -12,6 +12,7 @@ import logging
 import uuid
 import json
 import httpx
+import mmh3
 
 
 # Load environment variables
@@ -152,7 +153,9 @@ async def get_embedding(text: str) -> List[float]:
 
 async def store_document(title: str, content: str) -> str:
     """Store document in Milvus vector database"""
-    doc_id = str(uuid.uuid4())
+    # Generate a content-based ID using Murmur3 hash
+    doc_id = str(mmh3.hash128(content, signed=False))
+    
     embedding = await get_embedding(content)
     
     # Insert data
