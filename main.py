@@ -14,9 +14,16 @@ import json
 import httpx
 import mmh3
 
-
 # Load environment variables
 load_dotenv()
+
+# OpenAI Model Configuration
+OPENAI_EMBEDDING_MODEL = "text-embedding-3-small"
+OPENAI_CHAT_MODEL = "gpt-3.5-turbo"
+EMBEDDING_DIMENSION = 1536  # Dimension for text-embedding-3-small
+
+# Milvus Collection Configuration
+MILVUS_COLLECTION_NAME = "ansh_lamba_databricks_videos"
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -101,7 +108,7 @@ class DocumentResponse(BaseModel):
 
 # Milvus setup
 def setup_milvus_collection():
-    collection_name = "ansh_lamba_databricks_videos"
+    collection_name = MILVUS_COLLECTION_NAME
     
     # Check if collection exists
     if utility.has_collection(collection_name):
@@ -114,7 +121,7 @@ def setup_milvus_collection():
         FieldSchema(name="id", dtype=DataType.VARCHAR, max_length=100, is_primary=True),
         FieldSchema(name="title", dtype=DataType.VARCHAR, max_length=500),
         FieldSchema(name="content", dtype=DataType.VARCHAR, max_length=5000),
-        FieldSchema(name="embedding", dtype=DataType.FLOAT_VECTOR, dim=1536)  # OpenAI text-embedding-3-small dimension
+        FieldSchema(name="embedding", dtype=DataType.FLOAT_VECTOR, dim=EMBEDDING_DIMENSION)  # OpenAI text-embedding-3-small dimension
     ]
     
     schema = CollectionSchema(fields=fields, description="Knowledge base for RAG")
@@ -143,7 +150,7 @@ async def get_embedding(text: str) -> List[float]:
         
         # Create embedding using the OpenAI client
         response = await openai_client.embeddings.create(
-            model="text-embedding-3-small",
+            model=OPENAI_EMBEDDING_MODEL,
             input=cleaned_text
         )
         return response.data[0].embedding
@@ -225,7 +232,7 @@ Please provide a helpful and accurate response based on the context provided:"""
         # Get OpenAI client and generate response
         openai_client = get_openai_client()
         response = await openai_client.chat.completions.create(
-            model="gpt-3.5-turbo",
+            model=OPENAI_CHAT_MODEL,
             messages=[
                 {"role": "system", "content": "You are a helpful AI assistant that answers questions based on provided context."},
                 {"role": "user", "content": rag_prompt}
@@ -263,13 +270,15 @@ async def health_check():
     """Health check endpoint following RORO pattern"""
     # Descriptive variable names with auxiliary verbs
     has_openai_client = client is not None
-    is_milvus_connected = utility.has_collection("ansh_lamba_databricks_videos")
+    is_milvus_connected = utility.has_collection(MILVUS_COLLECTION_NAME)
     
     return {
-        "status": "healthy",
-        "connection_type": "Zilliz Cloud",
-        "milvus_connected": is_milvus_connected,
-        "embedding_model": "text-embedding-3-small",
+        "webapp status": "healthy",
+        "Vector Index": "Zilliz Cloud",
+        "Vector Index database": MILVUS_COLLECTION_NAME,
+        "Vector Index status": is_milvus_connected,
+        "embedding_model": OPENAI_EMBEDDING_MODEL,
+        "chat_model": OPENAI_CHAT_MODEL,
         "openai_status": "connected" if has_openai_client else "not configured"
     }
 
