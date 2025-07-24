@@ -260,15 +260,17 @@ async def say_hello(name: str):
 
 @app.get("/health")
 async def health_check():
-    # Test OpenAI client
-    openai_status = "connected" if client else "not configured"
+    """Health check endpoint following RORO pattern"""
+    # Descriptive variable names with auxiliary verbs
+    has_openai_client = client is not None
+    is_milvus_connected = utility.has_collection("ansh_lamba_databricks_videos")
     
     return {
         "status": "healthy",
         "connection_type": "Zilliz Cloud",
-        "milvus_connected": utility.has_collection("ansh_lamba_databricks_videos"),
+        "milvus_connected": is_milvus_connected,
         "embedding_model": "text-embedding-3-small",
-        "openai_status": openai_status
+        "openai_status": "connected" if has_openai_client else "not configured"
     }
 
 # RAG-powered chat endpoint
