@@ -33,3 +33,15 @@ RETURN p.name AS NobelPrizeWinner, c.description AS ContributionToScience
 try 2
 MATCH (p:Person)-[:WON]->(n:NobelPrize)-[:FOR]->(c:Contribution)
 RETURN p.name AS Winner, c.description AS Contribution
+
+Agent and MCP:
+https://github.com/modelcontextprotocol/servers
+
+LangGraph agent orchestration:
+https://github.com/langchain-ai/langgraph-studio
+
+Web search tool optimized for AI Agent:
+Tavily search
+
+To open my langgraph agent in the Graph Flow UI:
+uvx --refresh --from "langgraph-cli[inmem]" --with-editable . --python 3.12 langgraph dev --allow-blocking

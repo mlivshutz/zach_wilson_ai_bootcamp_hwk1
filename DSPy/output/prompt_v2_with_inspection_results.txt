@@ -1,0 +1,37 @@
+================================================================================
+TESTING PROMPT V2 WITH DETAILED PROMPT INSPECTION
+================================================================================
+
+📤 BASELINE PROMPT SENT TO GPT-4o:
+--------------------------------------------------
+Reasoning: To determine the country with the same letter repeated the most in its name, we need to consider the countries with repeated letters.
+Result: The country with the same letter repeated the most in its name is "Mauritius," which has the letter "i" repeated four times.
+
+📚 TRAINING EXAMPLES (V2 - COMPARATIVE STYLE):
+--------------------------------------------------
+Example 1:
+  Q: Using a list of all recognized countries. Compare the countries to see which has the most repeated letters in its name. For example, between  Philippines and the Marshall Islands, which has the most repeated letters?
+  A: Philippines
+  Reasoning: Because the Philippines has p repeated 4 times while Marshall Islands most preeated letter is a 3 times
+
+Example 2:
+  Q: Using the list of all recognized countries. Compare the countries to see which has the most repeated letters in its name. For example, between  Mexico and Canada?
+  A: Canada
+  Reasoning: Because Canada has the most repeated letter is a 3 times while Mexico most repeated letter is a 1 times
+
+Example 3:
+  Q: Using the list of all recognized countries. Compare the countries to see which has the most repeated letters in its name. For example, between Rwanda and Saint Vincent and the Grenadines?
+  A: Saint Vincent and the Grenadines
+  Reasoning: Because Saint Vincent and the Grenadines has the letter n repeated 6 times while Rwanda most repeated letter is a 2 times
+
+Example 4:
+  Q: Using the list of all recognized countries. Compare the countries to see which has the most repeated letters in its name. For example, between the United States Of America and Egypt?
+  A: United States of America
+  Reasoning: After counting the repetition of letters in the United States of America you get A three times while Egypts most repeated letter is only repeated once
+
+
+🎯 OPTIMIZED MODULE CREATED (V2 APPROACH)
+--------------------------------------------------
+
+📤 OPTIMIZED V2 PROMPT SENT TO GPT-4o:
+--------------------------------------------------

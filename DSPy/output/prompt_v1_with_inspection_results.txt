@@ -1,0 +1,53 @@
+================================================================================
+TESTING PROMPT V1 WITH DETAILED PROMPT INSPECTION
+================================================================================
+
+📤 BASELINE PROMPT SENT TO GPT-4o:
+--------------------------------------------------
+Reasoning: To determine which country has the same letter repeated the most in its name, we need to examine the names of all countries and count the occurrences of each letter within each name. The goal is to find the country where a single letter appears the most times. 
+
+One notable example is the country "Solomon Islands," where the letter 'o' appears three times. Another example is "Philippines," where the letter 'p' appears three times. However, "Solomon Islands" has a total of 13 letters, and "Philippines" has 11 letters, making the repetition of 'p' in "Philippines" more significant relative to the length of the name. 
+
+After reviewing the list of countries, "Philippines" stands out as having the highest repetition of a single letter ('p') in its name.
+Result: Philippines
+
+📚 TRAINING EXAMPLES:
+--------------------------------------------------
+Example 1: Q: What country has the same letter repeated the most in its name?
+            A: Saint Vincent and the Grenadines
+Example 2: Q: Which nation has the highest frequency of repeated letters in its name?
+            A: Saint Vincent and the Grenadines
+Example 3: Q: What is the country with the most letter repetitions in its official name?
+            A: Saint Vincent and the Grenadines
+Example 4: Q: Which country's name contains the same letter appearing most frequently?
+            A: Saint Vincent and the Grenadines
+Example 5: Q: What nation has a name with the highest count of duplicate letters?
+            A: Saint Vincent and the Grenadines
+
+🎯 OPTIMIZED MODULE CREATED
+--------------------------------------------------
+
+📤 OPTIMIZED PROMPT SENT TO GPT-4o:
+--------------------------------------------------
+Optimized Reasoning: To find the country with the most repeated instances of the same letter in its name, we need to examine the frequency of each letter in the names of all countries. The objective is to identify the country where a single letter appears the most times. Upon reviewing the names of countries, "Saint Vincent and the Grenadines" emerges as a notable example because the letter 'n' appears six times, which is more frequent than any other letter in any other country's name.
+Optimized Result: Saint Vincent and the Grenadines
+
+🔍 INTERNAL STRUCTURE INSPECTION:
+--------------------------------------------------
+
+🔄 CONSISTENCY TEST (5 runs):
+--------------------------------------------------
+Run 1: Saint Vincent and the Grenadines ✅
+Run 2: Saint Vincent and the Grenadines ✅
+Run 3: Saint Vincent and the Grenadines ✅
+Run 4: Saint Vincent and the Grenadines ✅
+Run 5: Saint Vincent and the Grenadines ✅
+
+================================================================================
+KEY FINDINGS:
+================================================================================
+1. Baseline prompt: Simple question-answer format
+2. Optimized prompt: Includes few-shot examples from training
+3. DSPy automatically formats examples into the prompt
+4. inspect_history() shows exactly what was sent to the LLM
+5. Compiled modules store examples in .predict.demos
